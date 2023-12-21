@@ -18,7 +18,6 @@
         <option value="Слава">Слава</option>
         <option value="Дима">Дима</option>
       </select>
-      <button id="submitName" type="button">Подтвердить</button>
       <button id="distribute" style="display: none" type="button">
         Распределить
       </button>
@@ -64,7 +63,6 @@
       const allActiveUsers = document.getElementById("allActiveUsers");
       const santaNotification = document.getElementById("santa-notification");
       const messages = document.getElementById("messages");
-      const submitNameBtn = document.getElementById("submitName");
       const distributeBtn = document.getElementById("distribute");
       const nameSelect = document.getElementById("selectedName");
 
@@ -122,11 +120,6 @@
         santaNotification.innerHTML = `<b>${value}</b>`;
       });
 
-      submitNameBtn.addEventListener("click", () => {
-        const selectedName = nameSelect.value;
-        socket.emit("submitName", socket.id, selectedName);
-      });
-
       sendMessage.addEventListener("click", () => {
         const value = messageBox.value;
         socket.emit("inputChatMessage", value);
@@ -138,6 +131,8 @@
       });
 
       nameSelect.addEventListener("change", ({ target }) => {
+        socket.emit("submitName", target.value);
+
         if (target.value === "Дима") {
           distributeBtn.style.display = "block";
         } else {

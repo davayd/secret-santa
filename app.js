@@ -46,11 +46,10 @@ io.on("connection", (socket) => {
     console.log(showUsers());
   });
 
-  socket.on("submitName", (...args) => {
-    const userName = args[1];
-    socketIdToUser[args[0]] = userName;
+  socket.on("submitName", (userName) => {
+    socketIdToUser[socket.id] = userName;
     console.log(showUsers());
-    io.emit("userSubmitted", args[0], userName);
+    io.emit("userSubmitted", socket.id, userName);
     io.emit("showAllUsersInRoom", socketIdToUser);
   });
 
