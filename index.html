@@ -2,39 +2,82 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Socket.IO Fiddle</title>
+    <title>Secret Santa</title>
   </head>
 
-  <body>
-    <label for="username">Моё имя:</label>
-    <select name="username" id="selectedName">
-      <option value="" selected disabled hidden>Выберите своё имя</option>
-      <option value="Рита">Рита</option>
-      <option value="Артур">Артур</option>
-      <option value="Лена">Лена</option>
-      <option value="Артём">Артём</option>
-      <option value="Даша">Даша</option>
-      <option value="Слава">Слава</option>
-      <option value="Дима">Дима</option>
-    </select>
-    <button id="submitName" type="button">Подтвердить</button>
-    <button id="distribute" type="button">Распределить</button>
+  <body style="width: 800px">
+    <div style="margin-bottom: 20px">
+      <label for="username">Моё имя:</label>
+      <select name="username" id="selectedName">
+        <option value="" selected disabled hidden>Выберите своё имя</option>
+        <option value="Рита">Рита</option>
+        <option value="Артур">Артур</option>
+        <option value="Лена">Лена</option>
+        <option value="Артём">Артём</option>
+        <option value="Даша">Даша</option>
+        <option value="Слава">Слава</option>
+        <option value="Дима">Дима</option>
+      </select>
+      <button id="submitName" type="button">Подтвердить</button>
+      <button id="distribute" style="display: none" type="button">
+        Распределить
+      </button>
+    </div>
 
-    <h2>Status: <span id="status">Disconnected</span></h2>
-    <h2>Messages:</h2>
-    <ul id="messages"></ul>
+    <fieldset style="margin-bottom: 10px">
+      <legend>Ты тайный Санта для</legend>
+      <div
+        style="text-align: center; font-size: 20px; color: red"
+        id="santa-notification"
+      >
+        Ожидание распределения...
+        <div>
+          Чат для скучных: <input id="chat-message-box" type="text" />
+          <button id="sendMessage">Отправить</button>
+        </div>
+      </div>
+    </fieldset>
+    <div style="display: flex; margin-bottom: 10px">
+      <fieldset style="flex: 1">
+        <legend>Active Users</legend>
+        <div id="allActiveUsers"></div>
+      </fieldset>
+      <fieldset style="flex: 1">
+        <legend>Chat</legend>
+        <div id="chatOutput" style="max-height: 200px; overflow-y: auto"></div>
+      </fieldset>
+    </div>
+    <fieldset>
+      <legend>Debug</legend>
+      <div>
+        <p>Status: <span id="status">Disconnected</span></p>
+        <ul style="max-height: 400px; overflow-y: auto" id="messages"></ul>
+      </div>
+    </fieldset>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
       const status = document.getElementById("status");
+      const messageBox = document.getElementById("chat-message-box");
+      const sendMessage = document.getElementById("sendMessage");
+      const chatOutput = document.getElementById("chatOutput");
+      const allActiveUsers = document.getElementById("allActiveUsers");
+      const santaNotification = document.getElementById("santa-notification");
       const messages = document.getElementById("messages");
       const submitNameBtn = document.getElementById("submitName");
       const distributeBtn = document.getElementById("distribute");
+      const nameSelect = document.getElementById("selectedName");
 
       const appendMessage = (content) => {
         const item = document.createElement("li");
         item.textContent = content;
         messages.appendChild(item);
+      };
+
+      const appendMessageChat = (content) => {
+        const item = document.createElement("li");
+        item.textContent = content;
+        chatOutput.appendChild(item);
       };
 
       const socket = io({
@@ -56,23 +99,57 @@
       });
 
       socket.on("userConnected", (value) => {
-        appendMessage(`event: userConnected ${value}`);
+        appendMessage(`event: user-connected | ${value}`);
+      });
+
+      socket.on("userSubmitted", (socketId, userName) => {
+        appendMessage(`event: user-submit-name | ${socketId} - ${userName}`);
+      });
+
+      socket.on("showAllUsersInRoom", (event) => {
+        const items = Object.entries(event).map(([key, value]) =>
+          wrapBold(key, `<li>${key} - ${value}</li>`)
+        );
+        allActiveUsers.innerHTML = `<ul>${items.join("")}</ul>`;
+      });
+
+      socket.on("outputChatMessage", (value) => {
+        appendMessageChat(value);
       });
 
       socket.on("santa", (value) => {
-        console.log(value);
         appendMessage(`event: santa ${value}`);
+        santaNotification.innerHTML = `<b>${value}</b>`;
       });
 
       submitNameBtn.addEventListener("click", () => {
-        const selectedName = document.getElementById("selectedName").value;
-        console.log(socket.id, selectedName);
+        const selectedName = nameSelect.value;
         socket.emit("submitName", socket.id, selectedName);
+      });
+
+      sendMessage.addEventListener("click", () => {
+        const value = messageBox.value;
+        socket.emit("inputChatMessage", value);
+        messageBox.value = "";
       });
 
       distributeBtn.addEventListener("click", () => {
         socket.emit("distribute");
       });
+
+      nameSelect.addEventListener("change", ({ target }) => {
+        if (target.value === "Дима") {
+          distributeBtn.style.display = "block";
+        } else {
+          distributeBtn.style.display = "none";
+        }
+      });
+
+      function wrapBold(key, content) {
+        return `${socket.id === key ? `<b>${content}</b>` : `${content}`}`;
+      }
     </script>
+
+    <style></style>
   </body>
 </html>

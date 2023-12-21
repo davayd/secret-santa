@@ -19,7 +19,7 @@ const httpServer = createServer((req, res) => {
   res.end(content);
 });
 
-const sockIdToUser = {};
+const socketIdToUser = {};
 
 const restrinctions = {
   Лена: ["Артур"],
@@ -36,27 +36,28 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-  sockIdToUser[socket.id] = null;
+  socketIdToUser[socket.id] = null;
   console.log(showUsers());
+  io.emit("userConnected", socket.id);
+  io.emit("showAllUsersInRoom", socketIdToUser);
 
-  socket.on("disconnect", (reason) => {
-    console.log(`user ${socket.id} disconnect due to ${reason}`);
-    delete sockIdToUser[socket.id];
+  socket.on("disconnect", () => {
+    delete socketIdToUser[socket.id];
     console.log(showUsers());
   });
 
   socket.on("submitName", (...args) => {
     const userName = args[1];
-    sockIdToUser[args[0]] = userName;
+    socketIdToUser[args[0]] = userName;
     console.log(showUsers());
-    socket.join(userName);
-    socket.emit("userConnected", userName);
+    io.emit("userSubmitted", args[0], userName);
+    io.emit("showAllUsersInRoom", socketIdToUser);
   });
 
   socket.on("distribute", () => {
     console.log("before shuffle", showUsers());
 
-    let before = Object.entries(sockIdToUser);
+    let before = Object.entries(socketIdToUser);
     for (let i = 0; i < 3; i++) {
       console.log(`shuffle cycle: ${i + 1}`);
       before = shuffle(before);
@@ -69,15 +70,17 @@ io.on("connection", (socket) => {
 
     console.log("after shuffle", after);
     const santaRoutes = distributeSanta(after);
-    const socketIdUsers = Object.entries(sockIdToUser);
+    const socketIdUsers = Object.entries(socketIdToUser);
     Object.entries(santaRoutes).forEach(([key, value]) => {
       const socketId = socketIdUsers.find((i) => i[1] === key)[0];
       if (socketId) {
-        console.log(key, socketId, io.sockets.adapter.rooms);
-
-        socket.emit("santa", value);
+        io.to(socketId).emit("santa", value);
       }
     });
+  });
+
+  socket.on("inputChatMessage", (value) => {
+    io.emit("outputChatMessage", `${socketIdToUser[socket.id]} - ${value}`);
   });
 });
 
@@ -115,7 +118,7 @@ function distributeSanta(shuffledUsers) {
 }
 
 function showUsers() {
-  const stringify = JSON.stringify(sockIdToUser);
+  const stringify = JSON.stringify(socketIdToUser);
   return stringify;
 }
 
