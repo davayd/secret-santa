@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Socket.IO Fiddle</title>
+  </head>
+
+  <body>
+    <label for="username">Моё имя:</label>
+    <select name="username" id="selectedName">
+      <option value="" selected disabled hidden>Выберите своё имя</option>
+      <option value="Рита">Рита</option>
+      <option value="Артур">Артур</option>
+      <option value="Лена">Лена</option>
+      <option value="Артём">Артём</option>
+      <option value="Даша">Даша</option>
+      <option value="Слава">Слава</option>
+      <option value="Дима">Дима</option>
+    </select>
+    <button id="submitName" type="button">Подтвердить</button>
+    <button id="distribute" type="button">Распределить</button>
+
+    <h2>Status: <span id="status">Disconnected</span></h2>
+    <h2>Messages:</h2>
+    <ul id="messages"></ul>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const status = document.getElementById("status");
+      const messages = document.getElementById("messages");
+      const submitNameBtn = document.getElementById("submitName");
+      const distributeBtn = document.getElementById("distribute");
+
+      const appendMessage = (content) => {
+        const item = document.createElement("li");
+        item.textContent = content;
+        messages.appendChild(item);
+      };
+
+      const socket = io({
+        // Socket.IO options
+      });
+
+      socket.on("connect", () => {
+        status.innerText = "Connected";
+        appendMessage(`event: connect | session id: ${socket.id}`);
+      });
+
+      socket.on("connect_error", (err) => {
+        appendMessage(`event: connect_error | reason: ${err.message}`);
+      });
+
+      socket.on("disconnect", (reason) => {
+        status.innerText = "Disconnected";
+        appendMessage(`event: disconnect | reason: ${reason}`);
+      });
+
+      socket.on("userConnected", (value) => {
+        appendMessage(`event: userConnected ${value}`);
+      });
+
+      socket.on("santa", (value) => {
+        console.log(value);
+        appendMessage(`event: santa ${value}`);
+      });
+
+      submitNameBtn.addEventListener("click", () => {
+        const selectedName = document.getElementById("selectedName").value;
+        console.log(socket.id, selectedName);
+        socket.emit("submitName", socket.id, selectedName);
+      });
+
+      distributeBtn.addEventListener("click", () => {
+        socket.emit("distribute");
+      });
+    </script>
+  </body>
+</html>
