@@ -57,7 +57,7 @@ io.on("connection", (socket) => {
     console.log("before shuffle", showUsers());
 
     let before = Object.entries(socketIdToUser);
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       console.log(`shuffle cycle: ${i + 1}`);
       before = shuffle(before);
     }
@@ -100,6 +100,7 @@ function distributeSanta(shuffledUsers) {
       )
     ) {
       nextUserIdx++;
+      swapItems(currentUserIdx, nextUserIdx);
     } else {
       if (shuffledNames.length === 1) {
         directions[shuffledNames[currentUserIdx]] = Object.keys(directions)[0];
@@ -147,4 +148,10 @@ function removeItemByIdx(array, index) {
     array.splice(index, 1);
   }
   return array;
+}
+
+function swapItems(list, x, y) {
+  var b = list[y];
+  list[y] = list[x];
+  list[x] = b;
 }
