@@ -108,6 +108,7 @@ function distributeSanta(shuffledUsers) {
       }
       // reset indexes
       nextUserIdx = 1;
+      currentUserIdx = 0;
       // pop array
       shuffledNames = removeItemByIdx(shuffledNames, currentUserIdx);
     }
