@@ -54,26 +54,25 @@ io.on("connection", (socket) => {
   });
 
   socket.on("distribute", () => {
-    console.log("before shuffle", showUsers());
+    let before = Object.values(socketIdToUser);
+    console.log("before shuffle", before);
 
-    let before = Object.entries(socketIdToUser);
-    for (let i = 0; i < 5; i++) {
-      console.log(`shuffle cycle: ${i + 1}`);
+    let i = 0;
+    do {
       before = shuffle(before);
-    }
+      console.log(`shuffle cycle ${++i}`, before);
+    } while (hasRestriction(before));
 
-    const after = before.reduce((acc, item) => {
-      acc[item[0]] = item[1];
-      return acc;
-    }, {});
-
-    console.log("after shuffle", after);
-    const santaRoutes = distributeSanta(after);
     const socketIdUsers = Object.entries(socketIdToUser);
-    Object.entries(santaRoutes).forEach(([key, value]) => {
-      const socketId = socketIdUsers.find((i) => i[1] === key)[0];
+    before.forEach((userName, idx) => {
+      const socketId = socketIdUsers.find((i) => i[1] === userName)[0];
       if (socketId) {
-        io.to(socketId).emit("santa", value);
+        if (idx === before.length - 1) {
+          io.to(socketId).emit("santa", before[0]);
+        } else {
+          io.to(socketId).emit("santa", before[idx + 1]);
+        }
+        
       }
     });
   });
@@ -85,37 +84,18 @@ io.on("connection", (socket) => {
 
 httpServer.listen(process.env.PORT || 3000);
 
-function distributeSanta(shuffledUsers) {
-  let shuffledNames = Object.values(shuffledUsers);
-  console.log("shuffledNames", shuffledNames);
+function hasRestriction(inputValues) {
+  const shuffledNames = [...inputValues, inputValues[0]];
 
-  const directions = {};
-  let currentUserIdx = 0;
-  let nextUserIdx = 1;
-  while (shuffledNames.length) {
-    console.log("shuffledNames while", shuffledNames);
-    if (
-      restrinctions[shuffledNames[currentUserIdx]].includes(
-        shuffledNames[nextUserIdx]
-      )
-    ) {
-      nextUserIdx++;
-      swapItems(currentUserIdx, nextUserIdx);
-    } else {
-      if (shuffledNames.length === 1) {
-        directions[shuffledNames[currentUserIdx]] = Object.keys(directions)[0];
-      } else {
-        directions[shuffledNames[currentUserIdx]] = shuffledNames[nextUserIdx];
-      }
-      // reset indexes
-      nextUserIdx = 1;
-      currentUserIdx = 0;
-      // pop array
-      shuffledNames = removeItemByIdx(shuffledNames, currentUserIdx);
+  let hasRestrictions = false;
+  for (let idx = 0; idx < shuffledNames.length; idx++) {
+    if (restrinctions[shuffledNames[idx]].includes(shuffledNames[idx + 1])) {
+      hasRestrictions = true;
+      break;
     }
   }
-  console.log("directions", directions);
-  return directions;
+  console.log("hasRestrictions", hasRestrictions);
+  return hasRestrictions;
 }
 
 function showUsers() {
@@ -141,17 +121,4 @@ function shuffle(array) {
   }
 
   return array;
-}
-
-function removeItemByIdx(array, index) {
-  if (index > -1) {
-    array.splice(index, 1);
-  }
-  return array;
-}
-
-function swapItems(list, x, y) {
-  var b = list[y];
-  list[y] = list[x];
-  list[x] = b;
 }
